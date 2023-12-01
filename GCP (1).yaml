@@ -1,0 +1,67 @@
+sudo apt-get update
+sudo apt-get install -yq git python3 python3-pip python3-distutils
+sudo pip install --upgrade pip virtualenv
+
+virtualenv -p python3 env
+source env/bin/activate
+# Install below 2 packages that are required for Hive connections
+pip install hdfs
+pip install thrift-sasl
+# Install DVT
+pip install google-pso-data-validator==1.7.2
+
+data-validation -h
+data-validation connections add -h
+gcloud config set project round-pen-403209
+export PROJECT_ID=$(gcloud config get-value project)
+
+# BigQuery Source Connection
+data-validation connections add --connection-name BQ_CONN BigQuery --project-id $PROJECT_ID
+# BigQuery Target Connection
+data-validation connections add --connection-name BQ_CONN2 BigQuery --project-id $PROJECT_ID
+
+data-validation connections list
+
+gcloud config set project harshround-pen1
+export PROJECT_ID2=$(gcloud config get-value project)
+data-validation connections add --connection-name BQ_CONN3 BigQuery --project-id $PROJECT_ID2
+data-validation connections list
+
+data-validation validate column --source-conn BQ_CONN --target-conn BQ_CONN2 --tables-list $PROJECT_ID.harsh_1412.credit_card_fraud=$PROJECT_ID.harsh_1412.copy_credit_fraud --sum Transaction_Amount
+data-validation validate column --source-conn BQ_CONN --target-conn BQ_CONN2 --tables-list $PROJECT_ID.harsh_1412.credit_card_fraud=$PROJECT_ID.harsh_1412.copy_credit_fraud --config-file GCP.yaml
+result_handler:
+  project_id: round-pen-403209
+  table_id: harsh_1412.copy_credit_fraud
+  type: BigQuery
+  source: BQ_CONN
+  target: BQ_CONN2
+  validations:
+    - aggregates:
+        - field_alias: count
+          source_column: Transaction_Amount
+          target_column: Transaction_Amount
+          type: count
+        - field_alias: sum__Transaction_Amount
+          source_column: Transaction_Amount
+          target_column: Transaction_Amount
+          type: sum
+        - field_alias: sum__num_docks_available
+          source_column: Merchant_Category_Code__MCC_
+          target_column: Merchant_Category_Code__MCC_
+          type: sum
+      labels:
+        - !!python/tuple
+          - description
+          - test
+      schema_name: round-pen-403209.harsh_1412
+      table_name: copy_credit_fraud
+      target_schema_name: round-pen-403209.harsh_1412
+      target_table_name: credit_card_fraud
+      threshold: 0.0
+      type: GroupedColumn
+
+project_id: round-pen-403209
+source_table: round-pen-403209.harsh_1412.copy_credit_fraud
+target_table: round-pen-403209.harsh_1412.credit_card_fraud
+source: BQ_CONN
+target: BQ_CONN2
