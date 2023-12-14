@@ -1,0 +1,4 @@
+Source_schema: round-pen-403209.harsh_1412
+Target_schema: harshround-pen1.harsh2
+Source_tables: ['wordcount_output','credit_card_fraud','InvoiceID_data','copy_credit_fraud','top_spender_data']
+Target_tables: ['credit_card_fraud', 'copy_credit_fraud']
